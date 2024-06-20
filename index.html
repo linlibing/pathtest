@@ -1,0 +1,282 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>H5路径规划</title>
+    <link rel="stylesheet" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css"/>
+    <style>
+        html, body, #container {
+            height: 100%;
+            width: 100%;
+        }
+        .nav-bg {
+            height: 44px;
+            background-color: #f0f0f0;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            font-size: 18px;
+            line-height: 44px;
+            z-index: 100;
+            text-align: center;
+        }
+        .custom-input-card {
+            width: 22rem;
+        }
+
+        .custom-input-card .btn {
+            margin-right: 1rem;
+        }
+
+        .custom-input-card .btn:last-child {
+            margin-right: 0;
+        }
+
+        .info-title {
+            color: white;
+            font-size: 14px;
+            background-color: #25A5F7;
+            line-height: 26px;
+            padding: 0px 0 0 6px;
+            font-weight: lighter;
+            letter-spacing: 1px
+        }
+
+        .info-content {
+            font: 12px Helvetica, 'Hiragino Sans GB', 'Microsoft Yahei', '微软雅黑', Arial;
+            padding: 4px;
+            color: #666666;
+            line-height: 23px;
+            background-color: #fff;
+        }
+
+        .info-content img {
+            float: left;
+            margin: 3px;
+        }
+        .info-content .btn {
+            margin-right: 1rem;
+        }
+
+        .amap-info-combo .keyword-input{
+            height: 25px;
+            border-radius: 2px 0 0 2px;
+        }
+    </style>
+</head>
+<body>
+<div class="nav-bg">
+    路径规划
+</div>
+<div id="container"></div>
+<div class="input-card custom-input-card">
+    <div class="input-item">
+        <!-- <input type="button" class="btn" value="信息窗体1" onClick="infowindow1.open(map,destinationMarker)"/> -->
+        <!-- <input type="button" class="btn" value="去导航" onClick="gonav()"/> -->
+        <input type="button" class="btn" value="定位" onClick="getLocation()"/>
+        <input type="button" class="btn" value="定时定位" onClick="durationnGetLocation()"/>
+        <span id="locationtime">0</span>
+    </div>
+</div>
+<script type="text/javascript"
+        src="http://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
+<script type="text/javascript">
+    window._AMapSecurityConfig = {
+      securityJsCode: "09151b676fd9200e07b2cf684ba3fb94",
+    };
+</script>
+<script type="text/javascript"
+        src="https://webapi.amap.com/maps?v=1.4.15&key=055ec21fd113b83382dd7e9e5e95fa1b&plugin=AMap.AdvancedInfoWindow&plugin=AMap.Riding"></script>
+<script type="text/javascript">
+    var originLnglat = [119.299281,26.085941]
+    var origin = '119.299281,26.085941'
+    var destination = '119.3137,26.103907'
+    var destinationMarker = [119.299281,26.085941]
+
+    var map = new AMap.Map('container', {
+        center: originLnglat,
+        resizeEnable: true,
+        zoom: 15
+    });
+    map.on("click", function (ev) {
+        //触发事件的对象
+        var target = ev.target;
+        //触发事件的地理坐标，AMap.LngLat 类型
+        destinationMarker = ev.lnglat;
+        infowindow1.open(map,destinationMarker)
+
+    });
+    var marker = new AMap.Marker({
+        position: originLnglat
+    });
+    marker.setMap(map);
+    AMap.plugin('AMap.Geolocation', function() {
+        var geolocation = new AMap.Geolocation({
+            enableHighAccuracy: true,//是否使用高精度定位，默认:true
+            timeout: 10000,          //超过10秒后停止定位，默认：5s
+            buttonPosition:'LB',    //定位按钮的停靠位置
+            buttonOffset: new AMap.Pixel(10, 20),//定位按钮与设置的停靠位置的偏移量，默认：Pixel(10, 20)
+            zoomToAccuracy: true,   //定位成功后是否自动调整地图视野到定位点
+
+        });
+        map.addControl(geolocation);
+        geolocation.getCurrentPosition(function(status,result){
+            if(status=='complete'){
+                onComplete(result)
+            }else{
+                onError(result)
+            }
+        });
+    });
+    //解析定位结果
+    function onComplete(data) {
+        alert('定位成功')
+        originLnglat = data.position
+        marker.setPosition(originLnglat)
+        map.setCenter(data.position)
+        origin = data.position.lat + ',' + data.position.lng
+    }
+    //解析定位错误信息
+    function onError(data) {
+        console.log('定位失败'+ '失败原因排查信息:'+data.message)
+    }
+    wx.ready(function(){
+        alert('微信初始化成功！！！')
+        // config信息验证后会执行ready方法，所有接口调用都必须在config接口获得结果之后，config是一个客户端的异步操作，所以如果需要在页面加载时就调用相关接口，则须把相关接口放在ready函数中调用来确保正确执行。对于用户触发时才调用的接口，则可以直接调用，不需要放在ready函数中。
+        wx.getLocation({
+        type: 'gcj02', // 默认为wgs84的gps坐标，如果要返回直接给openLocation用的火星坐标，可传入'gcj02'
+        success: function (res) {
+            var latitude = res.latitude; // 纬度，浮点数，范围为90 ~ -90
+            var longitude = res.longitude; // 经度，浮点数，范围为180 ~ -180。
+            originLnglat = []
+            originLnglat.push(latitude)
+            originLnglat.push(longitude)
+            marker.setPosition(originLnglat)
+            map.setCenter(data.position)
+            origin = latitude + ',' + longitude
+        }
+        });
+    });
+    wx.error(function(res){
+        // config信息验证失败会执行error函数，如签名过期导致验证失败，具体错误信息可以打开config的debug模式查看，也可以在返回的res参数中查看，对于SPA可以在这里更新签名。
+        alert('微信初始化失败' + res)
+    });
+    // 小程序定位
+    if (!window.WeixinJSBridge || !WeixinJSBridge.invoke) {
+       // document.addEventListener('WeixinJSBridgeReady', ready, false)
+    } else {
+        wx.config({
+            debug: true, // 开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。
+            appId: 'wx4bafc95dfa0ccc1c', // 必填，公众号的唯一标识
+            timestamp: '1715047646', // 必填，生成签名的时间戳
+            nonceStr: 'Wm3WZYTPz0wzccnW', // 必填，生成签名的随机串
+            signature: '4d461c9a60ec0e1c360d60c4873bb39b05450e60',// 必填，签名
+            jsApiList: ['getLocation'] // 必填，需要使用的JS接口列表
+        });
+    }
+    var content = '<div class="info-title" onclick="closeInfoWindow()">到这里去路径规划</div><div class="info-content">' +
+        '<input type="button" class="btn" value="电动车骑行规划" onclick="ridSearch()"/><input type="button" class="btn" value="去导航" onclick="gonav()"/></div>';
+    var infowindow1 = new AMap.InfoWindow({
+        isCustom: true,  //使用自定义窗体
+        content: content,
+        offset: new AMap.Pixel(0, -5)
+    });
+    infowindow1.on('complete', (e) => {
+        destination = e.data.destination.lat + ',' + e.data.destination.lng
+    })
+    //骑行导航
+   var riding = new AMap.Riding({
+        map: map
+    }); 
+    function ridSearch() {
+        //根据起终点坐标规划骑行路线
+        riding.search(originLnglat,destinationMarker, function(status, result) {
+            // result即是对应的骑行路线数据信息，相关数据结构文档请参考  https://lbs.amap.com/api/javascript-api/reference/route-search#m_RidingResult
+            if (status === 'complete') {
+                //alert('绘制骑行路线完成')
+            } else {
+                alert('骑行路线数据查询失败' + result)
+            }
+        });
+    }
+    function gonav() {
+        // 打开高德导航的URL
+        // var url = `https://restapi.amap.com/v3/direction?key=055ec21fd113b83382dd7e9e5e95fa1b&origin=${origin}&destination=${destination}&mode=driving&output=json&callback=handleNavResponse`
+        // window.open(url, '_blank');
+        // riding.searchOnAMAP({
+        //     origin:originLnglat,
+        //     destination:destinationMarker
+        // });
+        const u = navigator.userAgent
+        let url
+        // 判断设备是iOS还是Android，Linux
+        const isiOS = !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/)
+        const isAndroid = u.indexOf('Android') > -1 || u.indexOf('Linux') > -1
+        // myposition 为我当前位置 [114.361866, 30.540072]
+        if (isiOS) {
+            url = `iosamap://path?sourceApplication=applicationName&slat=${originLnglat[1]}&slon=${originLnglat[0]}&sname=当前位置&dlat=${destinationMarker.lat}&dlon=${destinationMarker.lng}&dev=0&t=3&rideType=elebike`
+        }
+        if (isAndroid) {
+            url = `amapuri://route/plan/?slat=${originLnglat[1]}&slon=${originLnglat[0]}&sname=当前位置&dlat=${destinationMarker.lat}&dlon=${destinationMarker.lng}&dev=0&t=3&rideType=elebike`
+        }
+        window.location.href = url
+    }
+    //关闭信息窗体
+    function closeInfoWindow() {
+        map.clearInfoWindow();
+    }
+    function durationnGetLocation() {
+        // 设置一个每2000毫秒执行一次的定时器
+        let time = 1;
+        setInterval(function() {
+            document.getElementById('locationtime').innerHTML = time++
+            this.getLocation()
+        }, 5000);
+    }
+    function getLocation() {
+        if (!window.WeixinJSBridge || !WeixinJSBridge.invoke) {
+            AMap.plugin('AMap.Geolocation', function() {
+            var geolocation = new AMap.Geolocation({
+                enableHighAccuracy: true,//是否使用高精度定位，默认:true
+                timeout: 10000,          //超过10秒后停止定位，默认：5s
+                buttonPosition:'LB',    //定位按钮的停靠位置
+                buttonOffset: new AMap.Pixel(10, 20),//定位按钮与设置的停靠位置的偏移量，默认：Pixel(10, 20)
+                zoomToAccuracy: true,   //定位成功后是否自动调整地图视野到定位点
+
+            });
+            map.addControl(geolocation);
+            geolocation.getCurrentPosition(function(status,result){
+                if(status=='complete'){
+                    onComplete(result)
+                }else{
+                    onError(result)
+                }
+            });
+        });
+        } else {
+            
+            wx.getLocation({
+            type: 'gcj02', // 默认为wgs84的gps坐标，如果要返回直接给openLocation用的火星坐标，可传入'gcj02'
+            success: function (res) {
+                alert('微信定位成功')
+                var latitude = res.latitude; // 纬度，浮点数，范围为90 ~ -90
+                var longitude = res.longitude; // 经度，浮点数，范围为180 ~ -180。
+                originLnglat = []
+                originLnglat.push(latitude)
+                originLnglat.push(longitude)
+                marker.setPosition(originLnglat)
+                map.setCenter(data.position)
+                origin = latitude + ',' + longitude
+            },
+            error: function (error) {
+                alert('微信定位失败' + error)
+            }
+            });
+        }
+    }
+    
+</script>
+</body>
+</html>
